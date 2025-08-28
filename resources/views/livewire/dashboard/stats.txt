@@ -1,0 +1,167 @@
+    <div class="row gx-3">
+        <div class="col-6 card mb-4 bg-neutral-900 text-white border-0 shadow-sm h-100">
+            <div class="card-header d-flex justify-content-between align-items-center bg-neutral-900 border-0">
+                <h5 class="px-2 mb-0 text-white">Patients par mois ({{ now()->year }})</h5>
+            </div>
+            <div class="card-body">
+                <div id="patients-per-month-chart"></div>
+            </div>
+        </div>
+
+        <div class="col-6 card mb-4 bg-neutral-900 text-white border-0 shadow-sm h-100">
+            <div class="card-header d-flex justify-content-between align-items-center bg-neutral-900 border-0">
+                <h5 class="px-2 mb-0 text-white">Statistiques des rendez-vous par statut ({{ now()->year }})</h5>
+            </div>
+            <div class="card-body">
+                <div id="appointments-status-line-chart"></div>
+            </div>
+        </div>
+    </div>
+
+    <script src="https://cdn.jsdelivr.net/npm/apexcharts"></script>
+    <script>
+        function renderPatientsChart() {
+            var chartEl = document.querySelector("#patients-per-month-chart");
+            if (!chartEl) return;
+            if (window.patientsChart) {
+                window.patientsChart.destroy();
+            }
+            var options = {
+                chart: {
+                    type: 'bar',
+                    height: 350,
+                    toolbar: { show: false },
+                    background: '#171717',
+                    zoom: { enabled: false },
+                    events: {
+                        mouseWheelZoom: false
+                    }
+                },
+                series: [{
+                    name: 'Patients',
+                    data: @json($patientsPerMonth)
+                }],
+                xaxis: {
+                    categories: @json($months),
+                    labels: { rotate: -45, style: { colors: '#fff' } }
+                },
+                yaxis: {
+                    title: { text: 'Nombre de patients', style: { color: '#fff' } },
+                    labels: { style: { colors: '#fff' } }
+                },
+                colors: ['#14b8a6'], // teal-500
+                dataLabels: { enabled: false },
+                grid: { strokeDashArray: 4, borderColor: '#333' },
+                tooltip: {
+                    theme: 'dark',
+                    y: { formatter: function(val) { return val + ' patients'; } },
+                    x: { formatter: function(val) { return val; }, title: { formatter: () => 'Mois' } }
+                },
+                legend: { labels: { colors: '#fff' } }
+            };
+            window.patientsChart = new ApexCharts(chartEl, options);
+            window.patientsChart.render();
+        }
+
+        function renderAppointmentsStatusLineChart() {
+            var chartEl = document.querySelector("#appointments-status-line-chart");
+            if (!chartEl) return;
+            if (window.appointmentsStatusLineChart) {
+                window.appointmentsStatusLineChart.destroy();
+            }
+            var colors = @json($appointmentsStats['colors']);
+            var options = {
+                chart: {
+                    type: 'area',
+                    height: 350,
+                    toolbar: { show: false },
+                    background: '#171717',
+                    zoom: { enabled: false },
+                    events: {
+                        mouseWheelZoom: false
+                    }
+                },
+                series: @json($appointmentsStats['series']),
+                xaxis: {
+                    categories: @json($appointmentsStats['labels']),
+                    labels: { rotate: -45, style: { colors: '#fff' } }
+                },
+                yaxis: {
+                    title: { text: 'Nombre de rendez-vous', style: { color: '#fff' } },
+                    labels: { style: { colors: '#fff' } }
+                },
+                colors: colors,
+                dataLabels: {
+                    enabled: true,
+                    style: { fontWeight: 700 },
+                    formatter: function (val, opts) {
+                        return val;
+                    },
+                    background: {
+                        enabled: true,
+                        foreColor: '#fff',
+                        borderRadius: 8,
+                        padding: 4,
+                        borderWidth: 0,
+                        opacity: 0.95,
+                        dropShadow: {
+                            enabled: false
+                        }
+                    },
+                    distributed: false,
+                    offsetY: 0,
+                    offsetX: 0,
+                    dropShadow: { enabled: false },
+                    style: {
+                        colors: colors
+                    }
+                },
+                grid: { strokeDashArray: 4, borderColor: '#333' },
+                tooltip: {
+                    theme: 'dark',
+                    y: { formatter: function(val) { return val + ' rendez-vous'; } },
+                    x: { formatter: function(val) { return val; }, title: { formatter: () => 'Mois' } }
+                },
+                legend: { labels: { colors: '#fff' } },
+                stroke: { curve: 'smooth', width: 3 },
+                fill: {
+                    type: 'gradient',
+                    gradient: {
+                        shade: 'dark',
+                        type: 'vertical',
+                        shadeIntensity: 0.5,
+                        gradientToColors: undefined,
+                        inverseColors: false,
+                        opacityFrom: 0.5,
+                        opacityTo: 0.1,
+                        stops: [0, 90, 100]
+                    }
+                },
+                markers: {
+                    size: 5,
+                    colors: colors,
+                    strokeColors: colors,
+                    strokeWidth: 3,
+                    hover: { size: 7 }
+                }
+            };
+            window.appointmentsStatusLineChart = new ApexCharts(chartEl, options);
+            window.appointmentsStatusLineChart.render();
+        }
+
+        document.addEventListener('livewire:navigated', () => {
+            renderPatientsChart();
+            renderAppointmentsStatusLineChart();
+        });
+        document.addEventListener('livewire:load', function () {
+            renderPatientsChart();
+            renderAppointmentsStatusLineChart();
+
+            Livewire.hook('message.processed', (message, component) => {
+                renderPatientsChart();
+                renderAppointmentsStatusLineChart();
+            });
+        });
+
+
+    </script>

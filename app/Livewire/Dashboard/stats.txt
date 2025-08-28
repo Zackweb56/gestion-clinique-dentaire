@@ -1,0 +1,77 @@
+<?php
+
+namespace App\Livewire\Dashboard;
+
+use Livewire\Component;
+
+use App\Models\Patient;
+use Illuminate\Support\Facades\Cache;
+use Carbon\Carbon;
+
+class Dashboard extends Component
+{
+    public $patientsPerMonth = [];
+    public $months = [];
+    public $appointmentsStats = [];
+
+    public function mount()
+    {
+        $year = now()->year;
+        $months = [];
+        $patientsPerMonth = [];
+        $frenchMonths = [
+            'Janvier', 'Février', 'Mars', 'Avril', 'Mai', 'Juin',
+            'Juillet', 'Août', 'Septembre', 'Octobre', 'Novembre', 'Décembre'
+        ];
+        for ($i = 1; $i <= 12; $i++) {
+            $months[] = $frenchMonths[$i-1];
+            $patientsPerMonth[] = Patient::whereYear('created_at', $year)
+                ->whereMonth('created_at', $i)
+                ->count();
+        }
+        $this->months = $months;
+        $this->patientsPerMonth = $patientsPerMonth;
+
+        // Appointment stats by status per month
+        $statuses = [
+            'pending' => 'En attente',
+            'confirmed' => 'Confirmé',
+            'in_progress' => 'En cours',
+            'done' => 'Terminé',
+            'canceled' => 'Annulé',
+            'no_show' => 'Absent',
+        ];
+        $stats = [];
+        foreach ($statuses as $statusKey => $statusLabel) {
+            $stats[$statusKey] = [];
+            for ($i = 1; $i <= 12; $i++) {
+                $stats[$statusKey][] = \App\Models\Appointment::whereYear('appointment_date', $year)
+                    ->whereMonth('appointment_date', $i)
+                    ->where('status', $statusKey)
+                    ->count();
+            }
+        }
+        $this->appointmentsStats = [
+            'labels' => $months,
+            'series' => array_map(function($key, $label) use ($stats) {
+                return [
+                    'name' => $label,
+                    'data' => $stats[$key],
+                ];
+            }, array_keys($statuses), array_values($statuses)),
+            'colors' => [
+                '#6b7280', // pending
+                '#2563eb', // confirmed
+                '#f59e42', // in_progress
+                '#22c55e', // done
+                '#ef4444', // canceled
+                '#991b1b', // no_show
+            ]
+        ];
+    }
+
+    public function render()
+    {
+        return view('livewire.dashboard.dashboard');
+    }
+}

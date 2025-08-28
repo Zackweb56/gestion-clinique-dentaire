@@ -1,0 +1,387 @@
+<div>
+    @include('components.flash_message')
+    <div class="rounded-xl p-6 bg-neutral-900 shadow mb-6">
+        <div class="flex items-center mb-4 gap-2 justify-between">
+            <div class="flex items-center gap-2">
+                <div class="relative w-full md:w-64">
+                    <div class="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none">
+                        <i class="fa-solid fa-magnifying-glass text-neutral-400"></i>
+                    </div>
+                    <input
+                        type="text"
+                        wire:model.live.debounce.300ms="search"
+                        class="block w-full pl-10 pr-10 py-2 border border-neutral-300 dark:border-neutral-600 rounded-md leading-5 bg-white dark:bg-neutral-700 placeholder-neutral-500 dark:placeholder-neutral-400 focus:outline-none focus:ring-2 focus:ring-teal-500 dark:focus:ring-teal-400 focus:border-transparent sm:text-sm"
+                        placeholder="Rechercher un patient..."
+                    >
+                    <div class="absolute inset-y-0 right-0 pr-3 flex items-center">
+                        <div wire:loading wire:target="search" class="animate-spin h-5 w-5 text-teal-500">
+                            <svg class="h-5 w-5" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24">
+                                <circle class="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" stroke-width="4"></circle>
+                                <path class="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path>
+                            </svg>
+                        </div>
+                    </div>
+                </div>
+                <div class="relative flex items-center">
+                    <select wire:model.live="filter_payment_method"
+                            class="rounded-md border border-neutral-600 bg-neutral-800 text-neutral-200 px-3 py-2 text-sm focus:ring-2 focus:ring-teal-500 focus:border-teal-500 transition-all pr-10">
+                        <option value="">Toutes les méthodes</option>
+                        @foreach($paymentMethods as $key => $label)
+                            <option value="{{ $key }}">{{ $label }}</option>
+                        @endforeach
+                    </select>
+                    <div wire:loading wire:target="filter_payment_method" class="absolute right-2 top-1/2 -translate-y-1/2">
+                        <svg class="animate-spin h-5 w-5 text-teal-500" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24">
+                            <circle class="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" stroke-width="4"></circle>
+                            <path class="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path>
+                        </svg>
+                    </div>
+                </div>
+            </div>
+            <div>
+                <x-custom-tooltip text="Créer un nouveau paiement">  
+                    <button type="button" id="create-payement-btn" onclick="handleCreateModalOpen()" class="inline-flex items-center gap-2 px-4 py-2 rounded-md bg-teal-600 hover:bg-teal-700 text-white font-medium" wire:loading.attr="disabled" wire:target="prepareCreate">
+                        <i class="fas fa-plus me-1"></i>
+                        Nouveau Paiement
+                        <span class="spinner hidden ml-2" wire:loading wire:target="prepareCreate">
+                            <svg class="animate-spin h-4 w-4 text-white" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24">
+                                <circle class="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" stroke-width="4"></circle>
+                                <path class="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path>
+                            </svg>
+                        </span>
+                    </button>
+                </x-custom-tooltip>
+            </div>
+        </div>
+        <flux:separator variant="subtle" />
+
+        <div class="mt-6 overflow-x-auto">
+            <table class="w-full divide-y divide-neutral-200 dark:divide-neutral-700">
+                <thead class="bg-neutral-50 dark:bg-neutral-800">
+                    <tr>
+                        <th class="px-6 py-3 text-left text-xs font-medium text-neutral-500 dark:text-neutral-300 uppercase tracking-wider">N° Facture</th>
+                        <th class="px-6 py-3 text-left text-xs font-medium text-neutral-500 dark:text-neutral-300 uppercase tracking-wider">Méthode</th>
+                        <th class="px-6 py-3 text-left text-xs font-medium text-neutral-500 dark:text-neutral-300 uppercase tracking-wider">Montant</th>
+                        <th class="px-6 py-3 text-left text-xs font-medium text-neutral-500 dark:text-neutral-300 uppercase tracking-wider">Notes</th>
+                        <th class="px-6 py-3 text-left text-xs font-medium text-neutral-500 dark:text-neutral-300 uppercase tracking-wider">Créé par</th>
+                        <th class="px-6 py-3 text-left text-xs font-medium text-neutral-500 dark:text-neutral-300 uppercase tracking-wider">Actions</th>
+                    </tr>
+                </thead>
+                <tbody class="bg-white divide-y divide-neutral-200 dark:divide-neutral-700 dark:bg-neutral-900">
+                    @forelse ($payements as $payement)
+                        <tr class="transition-colors duration-150">
+                            <td class="px-6 py-4 whitespace-nowrap text-sm font-medium text-neutral-900 dark:text-white">
+                                {{ $payement['invoice_number'] }}
+                            </td>
+                            <td class="px-6 py-4 whitespace-nowrap text-sm text-neutral-500 dark:text-neutral-400">
+                                @php
+                                    $method = $payement['payment_method'];
+                                    $badgeClasses = [
+                                        'espece' => 'bg-green-50 dark:bg-green-900/30 text-green-700 dark:text-green-300 border border-green-600',
+                                        'carte_bancaire' => 'bg-blue-50 dark:bg-blue-900/30 text-blue-700 dark:text-blue-300 border border-blue-600',
+                                        'cheque' => 'bg-yellow-50 dark:bg-yellow-900/30 text-yellow-700 dark:text-yellow-300 border border-yellow-600',
+                                        'virement' => 'bg-purple-50 dark:bg-purple-900/30 text-purple-700 dark:text-purple-300 border border-purple-600',
+                                    ];
+                                @endphp
+                                <span class="inline-block px-3 py-1 rounded-full font-semibold transition-colors {{ $badgeClasses[$method] ?? 'bg-neutral-200 text-neutral-800' }}">
+                                    {{ $paymentMethods[$method] ?? $method }}
+                                </span>
+                            </td>
+                            <td class="px-6 py-4 whitespace-nowrap text-sm text-neutral-500 dark:text-neutral-400">
+                                <div class="flex flex-col items-start gap-1">
+                                    <x-custom-tooltip text="Montant de paiement">
+                                        <span class="flex items-center gap-1">
+                                            <i class="fas fa-money-bill-wave text-green-500"></i>
+                                            <span class="font-semibold">{{ number_format($payement['amount'], 2) }} MAD</span>
+                                        </span>
+                                    </x-custom-tooltip>
+                                    <x-custom-tooltip text="Date de paiement">
+                                        <span class="flex items-center gap-1 -mt-1">
+                                            <i class="fas fa-calendar-alt text-blue-500"></i>
+                                            <span>{{ $payement['paid_at'] }}</span>
+                                        </span>
+                                    </x-custom-tooltip>
+                                </div>
+                            </td>
+                            <td class="px-6 py-4 whitespace-nowrap text-sm text-neutral-500 dark:text-neutral-400">
+                                <x-custom-tooltip text="{{ $payement['notes'] }}">
+                                    <span>
+                                        {{ \Illuminate\Support\Str::limit($payement['notes'], 30) ?? '-' }}
+                                    </span>
+                                </x-custom-tooltip>
+                            </td>
+                            <td class="px-6 py-4 whitespace-nowrap text-sm text-neutral-500 dark:text-neutral-400">
+                                {{ $payement['created_by'] }}
+                            </td>
+                            <td class="px-6 py-4 whitespace-nowrap text-sm text-neutral-500 dark:text-neutral-400">
+                                <div class="flex space-x-2">
+                                    <x-custom-tooltip text="Modifier le paiement">
+                                        <button wire:click="edit({{ $payement['id'] }})" class="cursor-pointer px-3 py-2 text-xs font-medium rounded-md bg-blue-50 dark:bg-blue-900/30 text-blue-600 dark:text-blue-400 hover:bg-blue-100 dark:hover:bg-blue-900/50 transition-colors" wire:loading.attr="disabled" wire:target="edit({{ $payement['id'] }})">
+                                            <span wire:loading.remove wire:target="edit({{ $payement['id'] }})">
+                                                <i class="fas fa-edit"></i>
+                                            </span>
+                                            <span wire:loading wire:target="edit({{ $payement['id'] }})" class="inline-flex items-center">
+                                                <svg class="animate-spin h-4 w-4 text-blue-600" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24">
+                                                    <circle class="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" stroke-width="4"></circle>
+                                                    <path class="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path>
+                                                </svg>
+                                            </span>
+                                        </button>
+                                    </x-custom-tooltip>
+                                    <x-custom-tooltip text="Supprimer le paiement">
+                                        <button wire:click="confirmDelete({{ $payement['id'] }})" class="cursor-pointer px-3 py-2 text-xs font-medium rounded-md bg-red-50 dark:bg-red-900/30 text-red-600 dark:text-red-400 hover:bg-red-100 dark:hover:bg-red-900/50 transition-colors" wire:loading.attr="disabled" wire:target="confirmDelete({{ $payement['id'] }})">
+                                            <span wire:loading.remove wire:target="confirmDelete({{ $payement['id'] }})">
+                                                <i class="fas fa-trash"></i>
+                                            </span>
+                                            <span wire:loading wire:target="confirmDelete({{ $payement['id'] }})" class="inline-flex items-center">
+                                                <svg class="animate-spin h-4 w-4 text-red-600" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24">
+                                                    <circle class="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" stroke-width="4"></circle>
+                                                    <path class="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path>
+                                                </svg>
+                                            </span>
+                                        </button>
+                                    </x-custom-tooltip>
+                                </div>
+                            </td>
+                        </tr>
+                    @empty
+                        <tr>
+                            <td colspan="7" class="px-6 py-8">
+                                <div class="flex flex-col items-center justify-center text-center">
+                                    <svg class="w-12 h-12 text-neutral-400 dark:text-neutral-600 mb-3" fill="none" stroke="currentColor" viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg">
+                                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z"></path>
+                                    </svg>
+                                    <p class="text-sm font-medium text-neutral-500 dark:text-neutral-400">Aucun paiement trouvé</p>
+                                    <p class="text-xs text-neutral-400 dark:text-neutral-500 mt-1">Commencez par créer votre premier paiement</p>
+                                </div>
+                            </td>
+                        </tr>
+                    @endforelse
+                </tbody>
+            </table>
+        </div>
+    </div>
+
+    {{-- Create Modal --}}
+    <div id="create-payement-modal" class="fixed inset-0 z-50 flex items-center justify-center bg-black/40 transition-opacity duration-200 {{ $showCreateModal ? '' : 'hidden' }}">
+        <div class="bg-neutral-800 rounded-xl p-6 w-full max-w-xl md:w-[700px] border border-neutral-600 relative">
+            <button type="button" onclick="closeModal('create-payement-modal')" class="absolute top-4 right-4 py-1 px-2 rounded-md text-neutral-500 hover:bg-neutral-600 hover:text-white text-sm transition-colors">
+                <i class="fas fa-close"></i>
+            </button>
+            <form wire:submit.prevent="store">
+                <div class="space-y-6">
+                    <div>
+                        <h2 class="text-md text-neutral-100">Nouveau Paiement</h2>
+                        <p class="mt-2 text-sm text-neutral-300">Remplissez les informations du paiement</p>
+                    </div>
+                    <div class="grid grid-cols-1 gap-4">
+                        @if($invoices->isEmpty())
+                            <div class="bg-yellow-100 text-yellow-800 rounded-md px-4 py-2 text-sm mb-2">
+                                Aucune facture n'est disponible. Veuillez d'abord créer une facture avant d'enregistrer un paiement.
+                            </div>
+                        @endif
+                        @if(request()->has('invoice_id') && $invoice_id)
+                            <div class="bg-blue-100 dark:bg-blue-900/30 text-blue-800 dark:text-blue-400 rounded-md px-4 py-2 text-sm mb-2">
+                                <i class="fas fa-info-circle mr-2"></i>
+                                Paiement pour la facture sélectionnée
+                            </div>
+                        @endif
+                        <label class="block">
+                            <span class="text-neutral-200 text-sm">Facture <span class="text-xs text-red-600">*</span></span>
+                            <select wire:model="invoice_id" class="mt-1 block w-full rounded-lg bg-neutral-700 border border-neutral-600 text-sm text-neutral-300 px-4 py-2 focus:ring-2 focus:ring-teal-500 focus:border-teal-500 transition-all" @if($invoices->isEmpty()) disabled @endif {{ request()->has('invoice_id') ? 'disabled' : '' }}>
+                                <option value="">Sélectionner une facture...</option>
+                                @foreach($invoices->where('status', '!=', 'payé') as $invoice)
+                                    <option value="{{ $invoice->id }}">
+                                        {{ $invoice->invoice_number }} - {{ $invoice->acte->medicalFile->patient->patient_full_name ?? 'N/A' }} (reste: {{ number_format($invoice->total_amount - $invoice->paid_amount, 2) }} MAD)
+                                    </option>
+                                @endforeach
+                            </select>
+                            @error('invoice_id') <span class="text-xs text-red-400">{{ $message }}</span> @enderror
+                        </label>
+                        <div class="grid grid-cols-2 gap-4">
+                            <div class="col-span-1">
+                                <label for="amount" class="block text-sm font-medium text-neutral-700 dark:text-neutral-300 mb-2">Montant (MAD) <span class="text-xs text-red-600">*</span></label>
+                                <input type="number" step="0.01" min="0.01" wire:model="amount" id="amount" class="w-full px-3 py-2 border border-neutral-300 dark:border-neutral-600 rounded-lg focus:ring-2 focus:ring-teal-500 focus:border-transparent dark:bg-neutral-800 dark:text-neutral-200" placeholder="0.00">
+                                @error('amount') <span class="text-red-500 text-sm">{{ $message }}</span> @enderror
+                                @if($invoice_id && $this->selectedInvoice)
+                                    <div class="mt-1 text-xs text-neutral-500 dark:text-neutral-400">
+                                        Montant restant: <span class="font-medium">{{ number_format($this->selectedInvoice->total_amount - $this->selectedInvoice->paid_amount, 2) }} MAD</span>
+                                    </div>
+                                @endif
+                            </div>
+                            <label class="block">
+                                <span class="text-neutral-200 text-sm">Méthode de paiement <span class="text-xs text-red-600">*</span></span>
+                                <select wire:model="payment_method" class="mt-1 block w-full rounded-lg bg-neutral-700 border border-neutral-600 text-sm text-neutral-300 px-4 py-2 focus:ring-2 focus:ring-teal-500 focus:border-teal-500 transition-all">
+                                    <option value="">Choisir la méthode...</option>
+                                    @foreach($paymentMethods as $key => $label)
+                                        <option value="{{ $key }}">{{ $label }}</option>
+                                    @endforeach
+                                </select>
+                                @error('payment_method') <span class="text-xs text-red-400">{{ $message }}</span> @enderror
+                            </label>
+                        </div>
+                        <label class="block">
+                            <span class="text-neutral-200 text-sm">Date de paiement <span class="text-xs text-red-600">*</span></span>
+                            <input type="datetime-local" wire:model="paid_at" class="mt-1 block w-full rounded-lg bg-neutral-700 border border-neutral-600 text-sm text-neutral-300 px-4 py-2 focus:ring-2 focus:ring-teal-500 focus:border-teal-500 transition-all" />
+                            @error('paid_at') <span class="text-xs text-red-400">{{ $message }}</span> @enderror
+                        </label>
+                        <label class="block">
+                            <span class="text-neutral-200 text-sm">Notes</span>
+                            <textarea rows="3" wire:model="notes" class="mt-1 block w-full rounded-lg bg-neutral-700 border border-neutral-600 text-sm text-neutral-300 px-4 py-2 focus:ring-2 focus:ring-teal-500 focus:border-teal-500 transition-all"></textarea>
+                            @error('notes') <span class="text-xs text-red-400">{{ $message }}</span> @enderror
+                        </label>
+                    </div>
+                    <div class="flex justify-end space-x-3">
+                        <button type="submit" class="px-5 py-2.5 rounded-lg bg-teal-600 hover:bg-teal-700 focus:ring-2 focus:ring-teal-400 text-white text-sm transition-all" @if($invoices->isEmpty()) disabled @endif wire:loading.attr="disabled" wire:target="store">
+                            <span wire:loading.remove wire:target="store">Enregistrer</span>
+                            <span wire:loading wire:target="store" class="inline-flex items-center">
+                                <svg class="animate-spin h-4 w-4 text-white mr-2" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24">
+                                    <circle class="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" stroke-width="4"></circle>
+                                    <path class="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path>
+                                </svg>
+                            </span>
+                        </button>
+                        <button type="button" onclick="closeModal('create-payement-modal')" class="px-5 py-2.5 rounded-lg bg-neutral-700 hover:bg-neutral-600 text-neutral-200 font-medium transition-all" wire:loading.attr="disabled" wire:target="store">Annuler</button>
+                    </div>
+                </div>
+            </form>
+        </div>
+    </div>
+
+    {{-- Edit Modal --}}
+    <div id="edit-payement-modal" class="fixed inset-0 z-50 flex items-center justify-center bg-black/40 transition-opacity duration-200 {{ $showEditModal ? '' : 'hidden' }}">
+        <div class="bg-neutral-800 rounded-xl p-6 w-full max-w-xl md:w-[700px] border border-neutral-600 relative">
+            <button type="button" onclick="closeModal('edit-payement-modal')" class="absolute top-4 right-4 py-1 px-2 rounded-md text-neutral-500 hover:bg-neutral-600 hover:text-white text-sm transition-colors">
+                <i class="fas fa-close"></i>
+            </button>
+            <form wire:submit.prevent="update">
+                <div class="space-y-6">
+                    <div>
+                        <h2 class="text-md text-neutral-100">Modifier le Paiement</h2>
+                        <p class="mt-2 text-sm text-neutral-300">Modifiez les informations du paiement</p>
+                    </div>
+                    <div class="grid grid-cols-1 gap-4">
+                        <label class="block">
+                            <span class="text-neutral-200 text-sm">Facture <span class="text-xs text-red-600">*</span></span>
+                            <select wire:model="invoice_id" class="mt-1 block w-full rounded-lg bg-neutral-700 border border-neutral-600 text-sm text-neutral-300 px-4 py-2 focus:ring-2 focus:ring-teal-500 focus:border-teal-500 transition-all" disabled>
+                                <option value="">Sélectionner une facture...</option>
+                                @foreach($invoices->where('status', '!=', 'payé') as $invoice)
+                                    <option value="{{ $invoice->id }}" @if($invoice->id == $invoice_id) selected @endif>
+                                        {{ $invoice->invoice_number }} - {{ $invoice->acte->medicalFile->patient->patient_full_name ?? 'N/A' }} (reste: {{ number_format($invoice->total_amount - $invoice->paid_amount, 2) }} MAD)
+                                    </option>
+                                @endforeach
+                            </select>
+                            @error('invoice_id') <span class="text-xs text-red-400">{{ $message }}</span> @enderror
+                        </label>
+                        <div class="grid grid-cols-2 gap-4">
+                            <div class="col-span-1">
+                                <label for="edit-amount" class="block text-sm font-medium text-neutral-700 dark:text-neutral-300 mb-2">Montant (MAD) <span class="text-xs text-red-600">*</span></label>
+                                <input type="number" step="0.01" min="0.01" wire:model="amount" id="edit-amount" class="w-full px-3 py-2 border border-neutral-300 dark:border-neutral-600 rounded-lg focus:ring-2 focus:ring-teal-500 focus:border-transparent dark:bg-neutral-800 dark:text-neutral-200" placeholder="0.00">
+                                @error('amount') <span class="text-red-500 text-sm">{{ $message }}</span> @enderror
+                                @if($invoice_id && $this->selectedInvoice)
+                                    <div class="mt-1 text-xs text-neutral-500 dark:text-neutral-400">
+                                        Montant restant: <span class="font-medium">{{ number_format($this->selectedInvoice->total_amount - $this->selectedInvoice->paid_amount + $amount, 2) }} MAD</span>
+                                    </div>
+                                @endif
+                            </div>
+                            <label class="block">
+                                <span class="text-neutral-200 text-sm">Méthode de paiement <span class="text-xs text-red-600">*</span></span>
+                                <select wire:model="payment_method" class="mt-1 block w-full rounded-lg bg-neutral-700 border border-neutral-600 text-sm text-neutral-300 px-4 py-2 focus:ring-2 focus:ring-teal-500 focus:border-teal-500 transition-all">
+                                    <option value="">Choisir la méthode...</option>
+                                    @foreach($paymentMethods as $key => $label)
+                                        <option value="{{ $key }}">{{ $label }}</option>
+                                    @endforeach
+                                </select>
+                                @error('payment_method') <span class="text-xs text-red-400">{{ $message }}</span> @enderror
+                            </label>
+                        </div>
+                        <label class="block">
+                            <span class="text-neutral-200 text-sm">Date de paiement <span class="text-xs text-red-600">*</span></span>
+                            <input type="datetime-local" wire:model="paid_at" class="mt-1 block w-full rounded-lg bg-neutral-700 border border-neutral-600 text-sm text-neutral-300 px-4 py-2 focus:ring-2 focus:ring-teal-500 focus:border-teal-500 transition-all" />
+                            @error('paid_at') <span class="text-xs text-red-400">{{ $message }}</span> @enderror
+                        </label>
+                        <label class="block">
+                            <span class="text-neutral-200 text-sm">Notes</span>
+                            <textarea rows="3" wire:model="notes" class="mt-1 block w-full rounded-lg bg-neutral-700 border border-neutral-600 text-sm text-neutral-300 px-4 py-2 focus:ring-2 focus:ring-teal-500 focus:border-teal-500 transition-all"></textarea>
+                            @error('notes') <span class="text-xs text-red-400">{{ $message }}</span> @enderror
+                        </label>
+                    </div>
+                    <div class="flex justify-end space-x-3">
+                        <button type="submit" class="px-5 py-2.5 rounded-lg bg-teal-600 hover:bg-teal-700 focus:ring-2 focus:ring-teal-400 text-white text-sm transition-all" wire:loading.attr="disabled" wire:target="update">
+                            <span wire:loading.remove wire:target="update">Mettre à jour</span>
+                            <span wire:loading wire:target="update" class="inline-flex items-center">
+                                <svg class="animate-spin h-4 w-4 text-white mr-2" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24">
+                                    <circle class="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" stroke-width="4"></circle>
+                                    <path class="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path>
+                                </svg>
+                            </span>
+                        </button>
+                        <button type="button" onclick="closeModal('edit-payement-modal')" class="px-5 py-2.5 rounded-lg bg-neutral-700 hover:bg-neutral-600 text-neutral-200 font-medium transition-all" wire:loading.attr="disabled" wire:target="update">Annuler</button>
+                    </div>
+                </div>
+            </form>
+        </div>
+    </div>
+
+
+
+    {{-- Delete Confirmation Modal --}}
+    <div id="delete-payement-modal" class="fixed inset-0 z-50 flex items-center justify-center bg-black/40 transition-opacity duration-200 {{ $showDeleteModal ? '' : 'hidden' }}">
+        <div class="bg-neutral-800 rounded-xl p-6 w-full max-w-md border border-neutral-600 relative">
+            <button type="button" onclick="closeModal('delete-payement-modal')" class="absolute top-4 right-4 py-1 px-2 rounded-md text-neutral-500 hover:bg-neutral-600 hover:text-white text-sm transition-colors">
+                <i class="fas fa-close"></i>
+            </button>
+            <div class="space-y-6">
+                <div>
+                    <h2 class="text-md text-neutral-100">Supprimer le Paiement</h2>
+                    <p class="mt-2 text-sm text-neutral-300">Êtes-vous sûr de vouloir supprimer ce paiement ? Cette action est irréversible.</p>
+                </div>
+                <div class="flex justify-end space-x-3">
+                    <button type="button" onclick="Livewire.first().call('delete')" class="px-5 py-2.5 rounded-lg bg-red-600 hover:bg-red-700 text-white text-sm font-medium transition-all" wire:loading.attr="disabled" wire:target="delete">
+                        <span wire:loading.remove wire:target="delete">Oui, supprimer</span>
+                        <span wire:loading wire:target="delete" class="inline-flex items-center">
+                            <svg class="animate-spin h-4 w-4 text-white mr-2" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24">
+                                <circle class="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" stroke-width="4"></circle>
+                                <path class="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path>
+                            </svg>
+                        </span>
+                    </button>
+                    <button type="button" onclick="closeModal('delete-payement-modal')" class="px-5 py-2.5 rounded-lg bg-neutral-700 hover:bg-neutral-600 text-neutral-200 font-medium transition-all" wire:loading.attr="disabled" wire:target="delete">Annuler</button>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <script>
+        function handleCreateModalOpen() {
+            Livewire.first().call('prepareCreate');
+        }
+
+        function closeModal(modalId) {
+            document.getElementById(modalId).classList.add('hidden');
+            // Also call Livewire to update the state
+            if (modalId === 'create-payement-modal') {
+                Livewire.first().set('showCreateModal', false);
+            } else if (modalId === 'edit-payement-modal') {
+                Livewire.first().set('showEditModal', false);
+            } else if (modalId === 'delete-payement-modal') {
+                Livewire.first().set('showDeleteModal', false);
+            }
+        }
+
+        // Listen for Livewire events to show/hide modals
+        document.addEventListener('livewire:init', () => {
+            Livewire.on('showCreateModal', () => {
+                document.getElementById('create-payement-modal').classList.remove('hidden');
+            });
+
+            Livewire.on('showEditModal', () => {
+                document.getElementById('edit-payement-modal').classList.remove('hidden');
+            });
+
+            Livewire.on('showDeleteModal', () => {
+                document.getElementById('delete-payement-modal').classList.remove('hidden');
+            });
+        });
+    </script>
+</div>

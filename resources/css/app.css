@@ -1,0 +1,148 @@
+@import 'tailwindcss';
+@import '../../vendor/livewire/flux/dist/flux.css';
+
+@source '../views';
+@source '../../vendor/laravel/framework/src/Illuminate/Pagination/resources/views/*.blade.php';
+@source '../../vendor/livewire/flux-pro/stubs/**/*.blade.php';
+@source '../../vendor/livewire/flux/stubs/**/*.blade.php';
+
+@custom-variant dark (&:where(.dark, .dark *));
+
+@theme {    
+    --color-zinc-50: var(--color-neutral-50);    
+    --color-zinc-100: var(--color-neutral-100);    
+    --color-zinc-200: var(--color-neutral-200);    
+    --color-zinc-300: var(--color-neutral-300);    
+    --color-zinc-400: var(--color-neutral-400);    
+    --color-zinc-500: var(--color-neutral-500);    
+    --color-zinc-600: var(--color-neutral-600);    
+    --color-zinc-700: var(--color-neutral-700);    
+    --color-zinc-800: var(--color-neutral-800);    
+    --color-zinc-900: var(--color-neutral-900);    
+    --color-zinc-950: var(--color-neutral-950);
+}
+    
+@theme {    
+    --color-accent: var(--color-teal-600);    
+    --color-accent-content: var(--color-teal-600);    
+    --color-accent-foreground: var(--color-white);
+}
+
+@layer theme {    
+    .dark {        
+        --color-accent: var(--color-teal-600);        
+        --color-accent-content: var(--color-teal-400);        
+        --color-accent-foreground: var(--color-white);    
+    }
+}
+
+@layer base {
+
+    *,
+    ::after,
+    ::before,
+    ::backdrop,
+    ::file-selector-button {
+        border-color: var(--color-gray-200, currentColor);
+    }
+}
+
+[data-flux-field]:not(ui-radio, ui-checkbox) {
+    @apply grid gap-2;
+}
+
+[data-flux-label] {
+    @apply  !mb-0 !leading-tight;
+}
+
+input:focus[data-flux-control],
+textarea:focus[data-flux-control],
+select:focus[data-flux-control] {
+    @apply outline-hidden ring-2 ring-accent ring-offset-2 ring-offset-accent-foreground;
+}
+
+/* \[:where(&)\]:size-4 {
+    @apply size-4;
+} */
+
+/* Center sidebar icons in navlist items */
+.flux-sidebar-icon {
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    width: 1.5em;
+    min-width: 1.5em;
+    font-size: 1.1em;
+}
+
+/* fullcalendar - Styling for events */
+.modal-input {
+    @apply mt-1 block w-full rounded-xl bg-neutral-800 border border-neutral-700 text-neutral-100 px-4 py-2 focus:ring-2 focus:ring-teal-500 focus:border-teal-500 transition-all;
+}
+/* Increase the height of each 30min slot in week/day views */
+.fc .fc-timegrid-slot {
+    height: 50px !important;
+    min-height: 50px !important;
+}
+/* Allow event content to wrap and fit in week/day views */
+.fc .fc-timegrid-event, .fc .fc-timegrid-event-harness {
+    min-height: 40px !important;
+    height: auto !important;
+    white-space: normal !important;
+    word-break: break-word !important;
+    padding: 0 !important;
+}
+.fc .fc-event-title, .fc .fc-event-time {
+    white-space: normal !important;
+    word-break: break-word !important;
+    font-size: 11px !important;
+}
+.fc .fc-timegrid-event .fc-event-main {
+    display: flex !important;
+    flex-direction: column !important;
+    align-items: center !important;
+    justify-content: center !important;
+    height: 100% !important;
+    width: 100% !important;
+    padding: 0 !important;
+}
+
+.fc .fc-timegrid-axis-cushion,
+.fc .fc-daygrid-axis-cushion {
+    font-size: 12px !important;
+    white-space: normal !important;
+    word-break: break-word !important;
+    max-width: 60px;
+}
+.fc .fc-timegrid-axis-frame {
+    min-width: 60px !important;
+}
+.fc .fc-timegrid-all-day-cushion {
+    font-size: 12px !important;
+    white-space: normal !important;
+    word-break: break-word !important;
+    max-width: 80px;
+}
+
+/* FullCalendar List View Dark Mode Fix (Tailwind Neutral Colors) */
+.fc-theme-standard .fc-list,
+.fc-theme-standard .fc-list-table,
+.fc-theme-standard .fc-list-day,
+.fc-theme-standard .fc-list-event {
+    background-color: #18181b !important; /* Tailwind neutral-900 */
+    color: #f3f4f6 !important;           /* Tailwind zinc-100 */
+}
+
+.fc-theme-standard .fc-list-event:hover,
+.fc-theme-standard .fc-list-event:hover td {
+    background-color: #27272a !important; /* Tailwind neutral-800 */
+}
+
+.fc-theme-standard .fc-list-day-cushion {
+    background-color: #23272f !important; /* Tailwind neutral-800/850 */
+    color: #e5e7eb !important;            /* Tailwind zinc-200 */
+}
+
+.fc-theme-standard .fc-list-event-dot {
+    border-color: #38bdf8 !important; /* Tailwind sky-400 */
+}
